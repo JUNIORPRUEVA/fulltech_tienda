@@ -21,6 +21,9 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+
+  // Files/uploads
+  UPLOAD_DIR: z.string().min(1).default("uploads"),
 });
 
 export type Env = z.infer<typeof envSchema>;

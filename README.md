@@ -46,6 +46,10 @@ Recomendado: PostgreSQL 15+ (se usa `TIMESTAMPTZ` y UUID con `pgcrypto`).
 
 - `DATABASE_URL`
 - `ADMIN_EMAIL` y `ADMIN_PASSWORD` (obligatorias para `npm run seed`)
+- `UPLOAD_DIR` (opcional, default `uploads`)
+
+Archivos (fotos, etc.): se sirven en `GET /uploads/<archivo>`.
+En producción, monta un volumen persistente en la ruta del contenedor ` /app/uploads `.
 
 ### Levantar solo la DB (Docker)
 

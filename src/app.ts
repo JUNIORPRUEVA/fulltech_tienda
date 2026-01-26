@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -53,6 +55,12 @@ export const createApp = () => {
 
   app.use(apiRateLimit);
   app.use(express.json({ limit: "1mb" }));
+
+  const uploadsDir = path.isAbsolute(env.UPLOAD_DIR)
+    ? env.UPLOAD_DIR
+    : path.join(process.cwd(), env.UPLOAD_DIR);
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  app.use("/uploads", express.static(uploadsDir));
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", env: env.NODE_ENV });
