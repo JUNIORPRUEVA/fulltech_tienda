@@ -1,0 +1,13 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+dist
+coverage
+*.log
+.DS_Store
+
+# Prisma generated client artifacts (kept in node_modules anyway)
+.prisma
+
+/generated/prisma

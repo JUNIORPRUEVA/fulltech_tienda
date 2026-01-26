@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id           String         @id @default(uuid()) @db.Uuid
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(USER)
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @db.Timestamptz(6)
+  deletedAt    DateTime?      @db.Timestamptz(6)
+  version      Int            @default(1)
+  updatedBy    String?        @db.Uuid
+  deviceId     String?
+
+  refreshTokens RefreshToken[]
+  customers     Customer[]
+  products      Product[]
+  sales         Sale[]
+  auditLogs     AuditLog[]
+  syncOps       SyncOp[]
+
+  syncState SyncState?
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String
+  deviceId  String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+  version   Int      @default(1)
+  updatedBy String?  @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @db.Uuid
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sales Sale[]
+  @@index([ownerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Product {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @db.Uuid
+  name      String
+  sku       String?  @unique
+  price     Decimal  @default(0) @db.Decimal(12, 2)
+  stock     Decimal  @default(0) @db.Decimal(12, 2)
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  saleItems SaleItem[]
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  @@index([ownerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Sale {
+  id         String   @id @default(uuid()) @db.Uuid
+  ownerId    String   @db.Uuid
+  customerId String?  @db.Uuid
+  total      Decimal  @default(0) @db.Decimal(12, 2)
+  saleAt     DateTime @default(now()) @db.Timestamptz(6)
+  note       String?
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items SaleItem[]
+  @@index([ownerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model SaleItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  saleId    String  @db.Uuid
+  productId String  @db.Uuid
+
+  qty       Decimal @default(1) @db.Decimal(12, 2)
+  price     Decimal @default(0) @db.Decimal(12, 2)
+  lineTotal Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  entity    String
+  entityId  String   @db.Uuid
+  action    String
+  userId    String?  @db.Uuid
+  deviceId  String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+  version   Int      @default(1)
+  updatedBy String?  @db.Uuid
+  meta      Json?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId])
+  @@index([entity, entityId])
+}
+
+model SyncState {
+  userId     String    @id @db.Uuid
+  lastPullAt DateTime? @db.Timestamptz(6)
+  lastPushAt DateTime? @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SyncOp {
+  id              String   @id @db.Uuid
+  userId          String   @db.Uuid
+  deviceId        String?
+  entity          String
+  entityId        String   @db.Uuid
+  type            String
+  clientUpdatedAt DateTime @db.Timestamptz(6)
+  processedAt     DateTime @default(now()) @db.Timestamptz(6)
+  status          String
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @db.Timestamptz(6)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  version         Int      @default(1)
+  updatedBy       String?  @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
