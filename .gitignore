@@ -6,6 +6,7 @@ dist
 coverage
 *.log
 .DS_Store
+*.tsbuildinfo
 
 # Prisma generated client artifacts (kept in node_modules anyway)
 .prisma
