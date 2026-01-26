@@ -62,6 +62,10 @@ export const createApp = () => {
   fs.mkdirSync(uploadsDir, { recursive: true });
   app.use("/uploads", express.static(uploadsDir));
 
+  app.get("/", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", env: env.NODE_ENV });
   });

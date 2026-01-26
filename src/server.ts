@@ -8,7 +8,7 @@ import { prisma } from "./db/prisma.js";
 const app = createApp();
 const server = createServer(app);
 
-server.listen(env.PORT, () => {
+server.listen(env.PORT, "0.0.0.0", () => {
   logger.info({ port: env.PORT }, "api.listening");
 });
 
