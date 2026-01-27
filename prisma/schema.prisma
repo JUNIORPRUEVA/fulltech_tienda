@@ -18,6 +18,12 @@ enum Role {
   USER
 }
 
+enum HrApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String         @id @default(uuid()) @db.Uuid
   email        String         @unique
@@ -50,6 +56,7 @@ model User {
   payrollAdjustments PayrollAdjustment[]
   payrollPayments PayrollPayment[]
   punches       Punch[]
+  hrApplications HrApplication[]
 
   syncState SyncState?
 }
@@ -94,6 +101,38 @@ model Customer {
   @@index([updatedAt, deletedAt])
 }
 
+model HrApplication {
+  id        String               @id @default(uuid()) @db.Uuid
+  ownerId   String               @db.Uuid
+  role      String
+  name      String
+  phone     String?
+  whatsapp  String?
+  techType  String?
+  techAreas Json?
+
+  resumeUrl String?
+  idCardUrl String?
+  photoUrl  String?
+
+  status    HrApplicationStatus @default(PENDING)
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+  version   Int       @default(1)
+  updatedBy String?   @db.Uuid
+  deviceId  String?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
 model Product {
   id        String   @id @default(uuid()) @db.Uuid
   ownerId   String   @db.Uuid
@@ -102,6 +141,7 @@ model Product {
   price     Decimal  @default(0) @db.Decimal(12, 2)
   stock     Decimal  @default(0) @db.Decimal(12, 2)
   imageUrl  String?
+  category  String?
 
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
@@ -115,6 +155,7 @@ model Product {
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@index([ownerId])
+  @@index([category])
   @@index([updatedAt])
   @@index([deletedAt])
   @@index([updatedAt, deletedAt])

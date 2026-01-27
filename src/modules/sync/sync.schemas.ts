@@ -70,6 +70,7 @@ export const productPayloadSchema = z.object({
   price: moneySchema,
   stock: moneySchema.optional(),
   imageUrl: z.string().min(1).max(2000).optional().nullable(),
+  category: z.string().min(1).max(200).optional().nullable(),
 });
 
 export const salePayloadSchema = z.object({

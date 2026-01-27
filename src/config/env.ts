@@ -32,6 +32,11 @@ const envSchema = z.object({
 
   // Files/uploads
   UPLOAD_DIR: z.string().min(1).default("uploads"),
+
+  // Virtual catalog branding
+  COMPANY_NAME: z.string().min(1).default("FULLTECH"),
+  COMPANY_TAGLINE: z.string().default("Soluciones en tecnología y seguridad"),
+  WHATSAPP_PHONE: z.string().default(""),
 });
 
 type ParsedEnv = z.infer<typeof envSchema>;

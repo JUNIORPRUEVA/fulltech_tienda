@@ -519,8 +519,9 @@ export const syncService = {
               payload.stock !== undefined
                 ? new Prisma.Decimal(payload.stock)
                 : new Prisma.Decimal(0),
-            imageUrl: payload.imageUrl ?? null,
-            createdAt: params.now,
+              imageUrl: payload.imageUrl ?? null,
+              category: payload.category ?? null,
+              createdAt: params.now,
             updatedAt: params.now,
             deletedAt: null,
             version: 1,
@@ -540,8 +541,9 @@ export const syncService = {
             payload.stock !== undefined
               ? new Prisma.Decimal(payload.stock)
               : undefined,
-          imageUrl: payload.imageUrl !== undefined ? payload.imageUrl : undefined,
-          deletedAt: null,
+            imageUrl: payload.imageUrl !== undefined ? payload.imageUrl : undefined,
+            category: payload.category !== undefined ? payload.category : undefined,
+            deletedAt: null,
           updatedAt: params.now,
           updatedBy: params.userId,
           deviceId: params.deviceId,

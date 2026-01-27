@@ -37,6 +37,7 @@ export const productsService = {
       price: string;
       stock?: string;
       imageUrl?: string | null;
+      category?: string | null;
     };
   }) {
     const now = new Date();
@@ -51,6 +52,7 @@ export const productsService = {
             ? new Prisma.Decimal(params.data.stock)
             : undefined,
         imageUrl: params.data.imageUrl ?? null,
+        category: params.data.category ?? null,
         createdAt: now,
         updatedAt: now,
         updatedBy: params.userId,
@@ -80,6 +82,7 @@ export const productsService = {
       price?: string;
       stock?: string;
       imageUrl?: string | null;
+      category?: string | null;
     };
   }) {
     const existing = await prisma.product.findFirst({
@@ -103,6 +106,7 @@ export const productsService = {
             ? new Prisma.Decimal(params.data.stock)
             : undefined,
         imageUrl: params.data.imageUrl !== undefined ? params.data.imageUrl : undefined,
+        category: params.data.category !== undefined ? params.data.category : undefined,
         updatedAt: now,
         updatedBy: params.userId,
         deviceId: params.deviceId,

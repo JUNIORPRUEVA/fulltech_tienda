@@ -16,6 +16,8 @@ import { customersRouter } from "./modules/customers/customers.router.js";
 import { productsRouter } from "./modules/products/products.router.js";
 import { salesRouter } from "./modules/sales/sales.router.js";
 import { filesRouter } from "./modules/files/files.router.js";
+import { virtualRouter } from "./modules/virtual/virtual.router.js";
+import { rrhhRouter } from "./modules/rrhh/rrhh.router.js";
 
 export const createApp = () => {
   const app = express();
@@ -73,6 +75,8 @@ export const createApp = () => {
   app.use("/products", productsRouter);
   app.use("/sales", salesRouter);
   app.use("/files", filesRouter);
+  app.use("/virtual", virtualRouter);
+  app.use("/rrhh", rrhhRouter);
 
   app.use((_req, res) => {
     res.status(404).json({
