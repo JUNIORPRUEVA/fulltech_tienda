@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs";
-import * as jwt from "jsonwebtoken";
+import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
 import { randomUUID, createHash } from "node:crypto";
 
 import { prisma } from "../../db/prisma.js";
@@ -38,8 +38,8 @@ export const authService = {
       env.JWT_ACCESS_SECRET,
       {
         subject: user.id,
-        expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-      } satisfies jwt.SignOptions,
+        expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
     );
 
     const refreshJti = randomUUID();
@@ -48,8 +48,8 @@ export const authService = {
       env.JWT_REFRESH_SECRET,
       {
         subject: user.id,
-        expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-      } satisfies jwt.SignOptions,
+        expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
     );
 
     await prisma.refreshToken.create({
@@ -66,9 +66,9 @@ export const authService = {
   },
 
   async refresh(refreshToken: string, deviceId?: string) {
-    let decoded: jwt.JwtPayload;
+    let decoded: JwtPayload;
     try {
-      decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as jwt.JwtPayload;
+      decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as JwtPayload;
     } catch {
       throw new AppError("Invalid refresh token", 401, "UNAUTHORIZED");
     }
@@ -111,8 +111,8 @@ export const authService = {
       env.JWT_ACCESS_SECRET,
       {
         subject: String(userId),
-        expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-      } satisfies jwt.SignOptions,
+        expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
     );
 
     const newRefreshJti = randomUUID();
@@ -121,8 +121,8 @@ export const authService = {
       env.JWT_REFRESH_SECRET,
       {
         subject: String(userId),
-        expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-      } satisfies jwt.SignOptions,
+        expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
     );
 
     await prisma.refreshToken.create({
