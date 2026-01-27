@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 
 import { env, corsOrigins } from "./config/env.js";
+import { ensureUploadsDir, uploadsDir } from "./config/paths.js";
 import { logger } from "./utils/logger.js";
 import { apiRateLimit } from "./middlewares/rateLimit.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -56,10 +55,7 @@ export const createApp = () => {
   app.use(apiRateLimit);
   app.use(express.json({ limit: "1mb" }));
 
-  const uploadsDir = path.isAbsolute(env.UPLOAD_DIR)
-    ? env.UPLOAD_DIR
-    : path.join(process.cwd(), env.UPLOAD_DIR);
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  ensureUploadsDir();
   app.use("/uploads", express.static(uploadsDir));
 
   app.get("/", (_req, res) => {

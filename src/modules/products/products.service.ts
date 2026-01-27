@@ -31,7 +31,13 @@ export const productsService = {
     ownerId: string;
     userId: string;
     deviceId?: string;
-    data: { name: string; sku?: string | null; price: string; stock?: string };
+    data: {
+      name: string;
+      sku?: string | null;
+      price: string;
+      stock?: string;
+      imageUrl?: string | null;
+    };
   }) {
     const now = new Date();
     const product = await prisma.product.create({
@@ -44,6 +50,7 @@ export const productsService = {
           params.data.stock !== undefined
             ? new Prisma.Decimal(params.data.stock)
             : undefined,
+        imageUrl: params.data.imageUrl ?? null,
         createdAt: now,
         updatedAt: now,
         updatedBy: params.userId,
@@ -67,7 +74,13 @@ export const productsService = {
     userId: string;
     deviceId?: string;
     id: string;
-    data: { name?: string; sku?: string | null; price?: string; stock?: string };
+    data: {
+      name?: string;
+      sku?: string | null;
+      price?: string;
+      stock?: string;
+      imageUrl?: string | null;
+    };
   }) {
     const existing = await prisma.product.findFirst({
       where: { ownerId: params.ownerId, id: params.id, deletedAt: null },
@@ -89,6 +102,7 @@ export const productsService = {
           params.data.stock !== undefined
             ? new Prisma.Decimal(params.data.stock)
             : undefined,
+        imageUrl: params.data.imageUrl !== undefined ? params.data.imageUrl : undefined,
         updatedAt: now,
         updatedBy: params.userId,
         deviceId: params.deviceId,

@@ -85,6 +85,7 @@ model Product {
   sku       String?  @unique
   price     Decimal  @default(0) @db.Decimal(12, 2)
   stock     Decimal  @default(0) @db.Decimal(12, 2)
+  imageUrl  String?
 
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @db.Timestamptz(6)

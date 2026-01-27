@@ -351,6 +351,7 @@ export const syncService = {
             name: payload.name,
             sku: payload.sku ?? null,
             price: new Prisma.Decimal(payload.price),
+            imageUrl: payload.imageUrl ?? null,
             createdAt: params.now,
             updatedAt: params.now,
             deletedAt: null,
@@ -371,6 +372,7 @@ export const syncService = {
             payload.stock !== undefined
               ? new Prisma.Decimal(payload.stock)
               : undefined,
+          imageUrl: payload.imageUrl !== undefined ? payload.imageUrl : undefined,
           deletedAt: null,
           updatedAt: params.now,
           updatedBy: params.userId,
