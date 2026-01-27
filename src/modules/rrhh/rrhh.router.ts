@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../db/prisma.js";
 import { env } from "../../config/env.js";
@@ -20,7 +21,11 @@ const roles = [
   { key: "admin", label: "Administrador" },
 ] as const;
 
+type RoleKey = (typeof roles)[number]["key"];
+
 const roleMap = new Map(roles.map((r) => [r.key, r.label]));
+const isRoleKey = (value: string): value is RoleKey =>
+  roleMap.has(value as RoleKey);
 
 const escapeHtml = (value: string) =>
   value
@@ -114,6 +119,10 @@ rrhhRouter.get("/", async (req, res) => {
 
 rrhhRouter.get("/roles/:role", async (req, res) => {
   const roleKey = (req.params.role ?? "").toString();
+  if (!isRoleKey(roleKey)) {
+    res.status(404).send("Rol no encontrado.");
+    return;
+  }
   const roleLabel = roleMap.get(roleKey);
   if (!roleLabel) {
     res.status(404).send("Rol no encontrado.");
@@ -231,6 +240,10 @@ rrhhRouter.post(
   async (req, res, next) => {
     try {
       const roleKey = (req.params.role ?? "").toString();
+      if (!isRoleKey(roleKey)) {
+        res.status(404).send("Rol no encontrado.");
+        return;
+      }
       const roleLabel = roleMap.get(roleKey);
       if (!roleLabel) {
         res.status(404).send("Rol no encontrado.");
@@ -288,7 +301,7 @@ rrhhRouter.post(
           phone,
           whatsapp,
           techType: techType || null,
-          techAreas: techAreasSelected ?? null,
+          techAreas: techAreasSelected ?? Prisma.JsonNull,
           resumeUrl: makeUrl(resume),
           idCardUrl: makeUrl(idCard),
           photoUrl: makeUrl(photo),
