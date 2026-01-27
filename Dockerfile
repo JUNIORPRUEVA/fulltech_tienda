@@ -15,6 +15,7 @@ COPY src ./src
 RUN npm run build
 
 ENV NODE_ENV=production
+ENV PRISMA_CLIENT_ENGINE_TYPE=library
 EXPOSE 3000
 
 CMD ["node", "dist/server.js"]
