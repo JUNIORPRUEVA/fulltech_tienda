@@ -246,9 +246,13 @@ model Employee {
   employeeOfMonth Boolean  @default(false)
   hireDate        DateTime? @db.Timestamptz(6)
   curriculumPath  String?
+  curriculumUrl   String?
   licensePath     String?
+  licenseUrl      String?
   idCardPhotoPath String?
+  idCardPhotoUrl  String?
   lastJobPath     String?
+  lastJobUrl      String?
   blocked         Boolean  @default(false)
   lastLoginAt     DateTime? @db.Timestamptz(6)
 
@@ -409,6 +413,7 @@ model OperationEvidence {
   operationId String   @db.Uuid
   type        String
   filePath    String
+  fileUrl     String?
 
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @db.Timestamptz(6)

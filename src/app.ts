@@ -15,6 +15,7 @@ import { syncRouter } from "./modules/sync/sync.router.js";
 import { customersRouter } from "./modules/customers/customers.router.js";
 import { productsRouter } from "./modules/products/products.router.js";
 import { salesRouter } from "./modules/sales/sales.router.js";
+import { filesRouter } from "./modules/files/files.router.js";
 
 export const createApp = () => {
   const app = express();
@@ -71,6 +72,7 @@ export const createApp = () => {
   app.use("/customers", customersRouter);
   app.use("/products", productsRouter);
   app.use("/sales", salesRouter);
+  app.use("/files", filesRouter);
 
   app.use((_req, res) => {
     res.status(404).json({

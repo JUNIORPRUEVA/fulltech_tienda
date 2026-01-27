@@ -138,9 +138,13 @@ export const employeePayloadSchema = z.object({
   employeeOfMonth: boolSchema.optional(),
   hireDate: dateSchema.optional().nullable(),
   curriculumPath: z.string().max(1000).optional().nullable(),
+  curriculumUrl: z.string().max(2000).optional().nullable(),
   licensePath: z.string().max(1000).optional().nullable(),
+  licenseUrl: z.string().max(2000).optional().nullable(),
   idCardPhotoPath: z.string().max(1000).optional().nullable(),
+  idCardPhotoUrl: z.string().max(2000).optional().nullable(),
   lastJobPath: z.string().max(1000).optional().nullable(),
+  lastJobUrl: z.string().max(2000).optional().nullable(),
   blocked: boolSchema.optional(),
   lastLoginAt: dateSchema.optional().nullable(),
   createdAt: dateSchema.optional(),
@@ -204,6 +208,7 @@ export const operationEvidencePayloadSchema = z.object({
   operationId: z.string().uuid(),
   type: z.string().min(1).max(100),
   filePath: z.string().min(1).max(2000),
+  fileUrl: z.string().max(2000).optional().nullable(),
   createdAt: dateSchema.optional(),
 });
 
