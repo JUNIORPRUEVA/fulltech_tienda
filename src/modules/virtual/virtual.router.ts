@@ -88,16 +88,33 @@ virtualRouter.get("/", async (req, res, next) => {
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user: { id: string } | null = null;
+    try {
+      user = await prisma.user.findUnique({ where: { email } });
+    } catch (_) {
+      res
+        .status(200)
+        .send(renderEmpty("Catálogo temporalmente no disponible."));
+      return;
+    }
+
     if (!user) {
       res.status(200).send(renderEmpty("Catálogo no encontrado."));
       return;
     }
 
-    const products = await prisma.product.findMany({
-      where: { ownerId: user.id, deletedAt: null },
-      orderBy: [{ category: "asc" }, { name: "asc" }],
-    });
+    let products: any[] = [];
+    try {
+      products = await prisma.product.findMany({
+        where: { ownerId: user.id, deletedAt: null },
+        orderBy: [{ category: "asc" }, { name: "asc" }],
+      });
+    } catch (_) {
+      res
+        .status(200)
+        .send(renderCatalog({ email, categories: new Map(), wa: null }));
+      return;
+    }
 
     const categories = new Map<string, typeof products>();
     for (const product of products) {
