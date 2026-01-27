@@ -1,9 +1,13 @@
 import { createServer } from "node:http";
 
-import { env } from "./config/env.js";
-import { createApp } from "./app.js";
-import { logger } from "./utils/logger.js";
-import { prisma } from "./db/prisma.js";
+// Some platforms inject PRISMA_CLIENT_ENGINE_TYPE=client, which requires an adapter/accelerateUrl.
+// Force the standard engine before importing the Prisma Client.
+process.env.PRISMA_CLIENT_ENGINE_TYPE = "library";
+
+const { env } = await import("./config/env.js");
+const { createApp } = await import("./app.js");
+const { logger } = await import("./utils/logger.js");
+const { prisma } = await import("./db/prisma.js");
 
 const app = createApp();
 const server = createServer(app);
