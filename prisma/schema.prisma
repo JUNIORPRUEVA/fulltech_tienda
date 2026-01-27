@@ -36,6 +36,20 @@ model User {
   sales         Sale[]
   auditLogs     AuditLog[]
   syncOps       SyncOp[]
+  saleItems     SaleItem[]
+  employees     Employee[]
+  employeeLogins EmployeeLogin[]
+  technicians   Technician[]
+  operations    Operation[]
+  operationMaterials OperationMaterial[]
+  operationEvidences OperationEvidence[]
+  operationNotes OperationNote[]
+  operationStatusHistory OperationStatusHistory[]
+  quotes        Quote[]
+  quoteItems    QuoteItem[]
+  payrollAdjustments PayrollAdjustment[]
+  payrollPayments PayrollPayment[]
+  punches       Punch[]
 
   syncState SyncState?
 }
@@ -72,6 +86,8 @@ model Customer {
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   sales Sale[]
+  operations Operation[]
+  quotes Quote[]
   @@index([ownerId])
   @@index([updatedAt])
   @@index([deletedAt])
@@ -95,6 +111,7 @@ model Product {
   deviceId   String?
 
   saleItems SaleItem[]
+  quoteItems QuoteItem[]
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@index([ownerId])
@@ -107,7 +124,12 @@ model Sale {
   id         String   @id @default(uuid()) @db.Uuid
   ownerId    String   @db.Uuid
   customerId String?  @db.Uuid
+  employeeId String?  @db.Uuid
+  code       String?
   total      Decimal  @default(0) @db.Decimal(12, 2)
+  profit     Decimal  @default(0) @db.Decimal(12, 2)
+  points     Decimal  @default(0) @db.Decimal(12, 2)
+  currency   String   @default("DOP")
   saleAt     DateTime @default(now()) @db.Timestamptz(6)
   note       String?
 
@@ -120,6 +142,7 @@ model Sale {
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   items SaleItem[]
   @@index([ownerId])
   @@index([updatedAt])
@@ -129,20 +152,28 @@ model Sale {
 
 model SaleItem {
   id        String  @id @default(uuid()) @db.Uuid
+  ownerId   String  @db.Uuid
   saleId    String  @db.Uuid
-  productId String  @db.Uuid
+  productId String? @db.Uuid
+  code      String?
+  name      String
 
   qty       Decimal @default(1) @db.Decimal(12, 2)
   price     Decimal @default(0) @db.Decimal(12, 2)
-  lineTotal Decimal @default(0) @db.Decimal(12, 2)
+  cost      Decimal @default(0) @db.Decimal(12, 2)
 
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt DateTime  @default(now()) @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
+  version   Int       @default(1)
+  updatedBy String?   @db.Uuid
+  deviceId  String?
 
-  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
+  @@index([ownerId])
   @@index([saleId])
   @@index([productId])
   @@index([updatedAt])
@@ -196,4 +227,398 @@ model SyncOp {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
+}
+
+model Employee {
+  id              String   @id @default(uuid()) @db.Uuid
+  ownerId         String   @db.Uuid
+  name            String
+  username        String?
+  role            String
+  email           String?
+  passwordLegacy  String?
+  passwordHash    String?
+  passwordSalt    String?
+  cedula          String?
+  address         String?
+  salaryBiweekly  Decimal? @db.Decimal(12, 2)
+  goalBiweekly    Decimal? @db.Decimal(12, 2)
+  employeeOfMonth Boolean  @default(false)
+  hireDate        DateTime? @db.Timestamptz(6)
+  curriculumPath  String?
+  licensePath     String?
+  idCardPhotoPath String?
+  lastJobPath     String?
+  blocked         Boolean  @default(false)
+  lastLoginAt     DateTime? @db.Timestamptz(6)
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  logins  EmployeeLogin[]
+  sales   Sale[]
+  technicianOperations Operation[] @relation("TechnicianEmployee")
+  notes   OperationNote[]
+  states  OperationStatusHistory[]
+  punches Punch[]
+  adjustments PayrollAdjustment[]
+  payments    PayrollPayment[]
+
+  @@index([ownerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model EmployeeLogin {
+  id         String   @id @default(uuid()) @db.Uuid
+  ownerId    String   @db.Uuid
+  employeeId String   @db.Uuid
+  time       DateTime @db.Timestamptz(6)
+  success    Boolean
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Technician {
+  id        String  @id @default(uuid()) @db.Uuid
+  ownerId   String  @db.Uuid
+  name      String
+  phone     String?
+  specialty String
+  status    String
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operations Operation[]
+
+  @@index([ownerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Operation {
+  id                 String   @id @default(uuid()) @db.Uuid
+  ownerId            String   @db.Uuid
+  customerId         String?  @db.Uuid
+  code               String
+  title              String?
+  serviceType        String
+  priority           String
+  status             String
+  technicianId       String?  @db.Uuid
+  technicianEmployeeId String? @db.Uuid
+  scheduledAt        DateTime? @db.Timestamptz(6)
+  estimatedTime      String?
+  serviceAddress     String?
+  locationRef        String?
+  description        String?
+  initialObservations String?
+  finalObservations  String?
+  amount             Decimal? @db.Decimal(12, 2)
+  paymentMethod      String?
+  paymentStatus      String?
+  paymentPaidAmount  Decimal? @db.Decimal(12, 2)
+  chkArrived         Boolean  @default(false)
+  chkMaterialInstalled Boolean @default(false)
+  chkSystemTested     Boolean  @default(false)
+  chkClientTrained    Boolean  @default(false)
+  chkWorkCompleted    Boolean  @default(false)
+  warrantyType       String?
+  warrantyExpiresAt  DateTime? @db.Timestamptz(6)
+  finishedAt         DateTime? @db.Timestamptz(6)
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  technicianEmployee Employee? @relation("TechnicianEmployee", fields: [technicianEmployeeId], references: [id], onDelete: SetNull)
+
+  materials  OperationMaterial[]
+  evidences  OperationEvidence[]
+  notes      OperationNote[]
+  statusHistory OperationStatusHistory[]
+
+  @@index([ownerId])
+  @@index([customerId])
+  @@index([technicianId])
+  @@index([technicianEmployeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model OperationMaterial {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @db.Uuid
+  operationId String   @db.Uuid
+  name        String
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([operationId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model OperationEvidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @db.Uuid
+  operationId String   @db.Uuid
+  type        String
+  filePath    String
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([operationId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model OperationNote {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @db.Uuid
+  operationId String   @db.Uuid
+  employeeId  String?  @db.Uuid
+  note        String
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  employee  Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([operationId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model OperationStatusHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @db.Uuid
+  operationId String   @db.Uuid
+  fromStatus  String?
+  toStatus    String
+  employeeId  String?  @db.Uuid
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  employee  Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([operationId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Quote {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @db.Uuid
+  customerId     String?  @db.Uuid
+  code           String?
+  total          Decimal  @default(0) @db.Decimal(12, 2)
+  currency       String   @default("DOP")
+  status         String
+  notes          String?
+  itbisActive    Boolean  @default(true)
+  itbisRate      Decimal  @default(0.18) @db.Decimal(5, 4)
+  discountGlobal Decimal  @default(0) @db.Decimal(12, 2)
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    QuoteItem[]
+
+  @@index([ownerId])
+  @@index([customerId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model QuoteItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  ownerId   String  @db.Uuid
+  quoteId   String  @db.Uuid
+  productId String? @db.Uuid
+  code      String?
+  name      String
+  price     Decimal @default(0) @db.Decimal(12, 2)
+  qty       Decimal @default(0) @db.Decimal(12, 2)
+  discount  Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([quoteId])
+  @@index([productId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model PayrollAdjustment {
+  id          String  @id @default(uuid()) @db.Uuid
+  ownerId     String  @db.Uuid
+  employeeId  String  @db.Uuid
+  periodStart DateTime @db.Timestamptz(6)
+  periodEnd   DateTime @db.Timestamptz(6)
+  type        String
+  amount      Decimal @default(0) @db.Decimal(12, 2)
+  note        String?
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model PayrollPayment {
+  id          String  @id @default(uuid()) @db.Uuid
+  ownerId     String  @db.Uuid
+  employeeId  String  @db.Uuid
+  periodStart DateTime @db.Timestamptz(6)
+  periodEnd   DateTime @db.Timestamptz(6)
+  paidAt      DateTime @db.Timestamptz(6)
+  baseSalary  Decimal @default(0) @db.Decimal(12, 2)
+  commission  Decimal @default(0) @db.Decimal(12, 2)
+  adjustments Decimal @default(0) @db.Decimal(12, 2)
+  net         Decimal @default(0) @db.Decimal(12, 2)
+  status      String
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
+}
+
+model Punch {
+  id         String  @id @default(uuid()) @db.Uuid
+  ownerId    String  @db.Uuid
+  employeeId String? @db.Uuid
+  type       String
+  time       DateTime @db.Timestamptz(6)
+  location   String?
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt  DateTime? @db.Timestamptz(6)
+  version    Int       @default(1)
+  updatedBy  String?   @db.Uuid
+  deviceId   String?
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([employeeId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@index([updatedAt, deletedAt])
 }
