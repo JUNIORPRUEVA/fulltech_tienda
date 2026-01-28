@@ -8,6 +8,7 @@ import '../utils/cloud_friendly_error.dart';
 import 'app_database.dart';
 import 'cloud_api.dart';
 import 'cloud_settings.dart';
+import 'sync/sync_service.dart';
 
 sealed class LoginResult {
   const LoginResult();
@@ -175,6 +176,18 @@ class AuthService {
       _userId = localId;
       _userIdRaw = localId.toString();
       _hasSession = true;
+
+      // Force full pull after login to keep shared data in sync.
+      await CloudSettings.saveLastServerTime('');
+      try {
+        await SyncService().syncNow();
+      } catch (e) {
+        await CloudSettings.saveLastCloudStatus(
+          ok: false,
+          message: cloudFriendlyReason(e),
+        );
+        return const LoginResult.invalid();
+      }
 
       await loadSession();
       return const LoginResult.ok();
