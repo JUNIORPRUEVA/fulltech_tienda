@@ -25,9 +25,11 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _boot() async {
     final settings = await CloudSettings.load();
     final api = CloudApi();
-    final ok = await api.ping(baseUrl: settings.baseUrl).catchError((_) => false);
+    final ok =
+        await api.ping(baseUrl: settings.baseUrl).catchError((_) => false);
     if (!ok) {
-      throw StateError('Sin conexión: necesitas Internet para usar la app.');
+      throw StateError(
+          'Sin conexion. Verifica tu internet y que el servidor este activo.');
     }
     await AuthService.instance.loadSession();
   }

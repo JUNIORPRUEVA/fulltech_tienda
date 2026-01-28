@@ -61,6 +61,9 @@ class CloudSettings {
 
   static String _normalizeBaseUrl(String raw) {
     var v = raw.trim();
+    if (v.isNotEmpty && !v.startsWith('http://') && !v.startsWith('https://')) {
+      v = 'https://$v';
+    }
     if (v.endsWith('/')) v = v.substring(0, v.length - 1);
     return v;
   }

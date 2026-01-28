@@ -44,6 +44,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android build outputs
+/android/build/
+/android/.gradle/
+/android/.cxx/
+/android/local.properties
+
 # Backend lives in its own git repo
 /backend/
 

@@ -10,9 +10,22 @@ class CloudApi {
   final http.Client _client;
 
   Future<bool> ping({required String baseUrl}) async {
-    final url = Uri.parse('${_normalizeBaseUrl(baseUrl)}/health');
-    final resp = await _client.get(url).timeout(const Duration(seconds: 8));
-    return resp.statusCode >= 200 && resp.statusCode < 300;
+    final base = _normalizeBaseUrl(baseUrl);
+    final healthUrl = Uri.parse('$base/health');
+    try {
+      final resp =
+          await _client.get(healthUrl).timeout(const Duration(seconds: 5));
+      if (resp.statusCode >= 200 && resp.statusCode < 300) return true;
+    } catch (_) {}
+
+    final rootUrl = Uri.parse(base);
+    try {
+      final resp =
+          await _client.get(rootUrl).timeout(const Duration(seconds: 5));
+      return resp.statusCode >= 200 && resp.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>> login({
@@ -164,6 +177,9 @@ class CloudApi {
 
   static String _normalizeBaseUrl(String raw) {
     var v = raw.trim();
+    if (v.isNotEmpty && !v.startsWith('http://') && !v.startsWith('https://')) {
+      v = 'https://$v';
+    }
     if (v.endsWith('/')) v = v.substring(0, v.length - 1);
     return v;
   }
