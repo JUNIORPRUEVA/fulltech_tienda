@@ -65,6 +65,149 @@ export const authService = {
     return { accessToken, refreshToken };
   },
 
+  async loginEmployee(username: string, password: string, deviceId?: string) {
+    const input = username.trim();
+    if (!input) {
+      throw new AppError("Invalid credentials", 401, "UNAUTHORIZED");
+    }
+
+    const employees = await prisma.employee.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { username: { equals: input, mode: "insensitive" } },
+          { email: { equals: input, mode: "insensitive" } },
+        ],
+      },
+      take: 3,
+      select: {
+        id: true,
+        ownerId: true,
+        blocked: true,
+        passwordHash: true,
+        passwordSalt: true,
+        passwordLegacy: true,
+        name: true,
+        username: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    if (employees.length === 0) {
+      throw new AppError("Invalid credentials", 401, "UNAUTHORIZED");
+    }
+
+    const ownerIds = new Set(employees.map((e) => e.ownerId));
+    if (ownerIds.size > 1) {
+      throw new AppError(
+        "Multiple accounts found. Contact admin.",
+        409,
+        "AMBIGUOUS_USER",
+      );
+    }
+
+    const employee = employees[0];
+
+    if (employee.blocked) {
+      await prisma.employeeLogin.create({
+        data: {
+          ownerId: employee.ownerId,
+          employeeId: employee.id,
+          time: new Date(),
+          success: false,
+          deviceId,
+          updatedBy: employee.ownerId,
+        },
+      });
+      throw new AppError("User blocked", 403, "BLOCKED");
+    }
+
+    let ok = false;
+    const salt = employee.passwordSalt?.trim();
+    const hash = employee.passwordHash?.trim();
+    if (salt && hash) {
+      ok = sha256(`${salt}:${password}`) === hash;
+    } else if (employee.passwordLegacy?.trim()) {
+      ok = employee.passwordLegacy.trim() === password;
+    }
+
+    if (!ok) {
+      await prisma.employeeLogin.create({
+        data: {
+          ownerId: employee.ownerId,
+          employeeId: employee.id,
+          time: new Date(),
+          success: false,
+          deviceId,
+          updatedBy: employee.ownerId,
+        },
+      });
+      throw new AppError("Invalid credentials", 401, "UNAUTHORIZED");
+    }
+
+    await prisma.employeeLogin.create({
+      data: {
+        ownerId: employee.ownerId,
+        employeeId: employee.id,
+        time: new Date(),
+        success: true,
+        deviceId,
+        updatedBy: employee.ownerId,
+      },
+    });
+
+    const accessToken = jwt.sign(
+      {},
+      env.JWT_ACCESS_SECRET,
+      {
+        subject: employee.ownerId,
+        expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
+    );
+
+    const refreshJti = randomUUID();
+    const refreshToken = jwt.sign(
+      { jti: refreshJti },
+      env.JWT_REFRESH_SECRET,
+      {
+        subject: employee.ownerId,
+        expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions["expiresIn"],
+      } satisfies SignOptions,
+    );
+
+    await prisma.refreshToken.create({
+      data: {
+        id: refreshJti,
+        userId: employee.ownerId,
+        tokenHash: sha256(refreshToken),
+        deviceId,
+        updatedBy: employee.ownerId,
+      },
+    });
+
+    const owner = await prisma.user.findUnique({
+      where: { id: employee.ownerId },
+      select: { email: true },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      employeeId: employee.id,
+      employee: {
+        id: employee.id,
+        name: employee.name,
+        username: employee.username,
+        email: employee.email,
+        role: employee.role,
+        blocked: employee.blocked,
+      },
+      ownerId: employee.ownerId,
+      ownerEmail: owner?.email ?? "",
+    };
+  },
+
   async refresh(refreshToken: string, deviceId?: string) {
     let decoded: JwtPayload;
     try {

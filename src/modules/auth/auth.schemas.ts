@@ -11,6 +11,12 @@ export const loginBodySchema = z.object({
   deviceId: z.string().min(1).max(200).optional(),
 });
 
+export const employeeLoginBodySchema = z.object({
+  username: z.string().min(1).max(100),
+  password: z.string().min(1).max(200),
+  deviceId: z.string().min(1).max(200).optional(),
+});
+
 export const refreshBodySchema = z.object({
   refreshToken: z.string().min(1),
   deviceId: z.string().min(1).max(200).optional(),

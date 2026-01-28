@@ -27,6 +27,25 @@ export const login: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const employeeLogin: RequestHandler = async (req, res, next) => {
+  try {
+    const { username, password, deviceId } = req.body as {
+      username: string;
+      password: string;
+      deviceId?: string;
+    };
+
+    const result = await authService.loginEmployee(
+      username,
+      password,
+      deviceId,
+    );
+    res.status(200).json(result);
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const refresh: RequestHandler = async (req, res, next) => {
   try {
     const { refreshToken, deviceId } = req.body as {
