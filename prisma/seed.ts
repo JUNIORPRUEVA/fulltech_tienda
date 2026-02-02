@@ -6,9 +6,14 @@ import { prisma } from "../src/db/prisma.js";
 const main = async () => {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
+  const demoEmployeeUsername = (process.env.DEMO_EMPLOYEE_USERNAME ?? "demo").trim();
+  const demoEmployeePassword = (process.env.DEMO_EMPLOYEE_PASSWORD ?? "Demo12345!").trim();
 
   if (!email || !password) {
     throw new Error("Missing ADMIN_EMAIL or ADMIN_PASSWORD in environment");
+  }
+  if (!demoEmployeeUsername || !demoEmployeePassword) {
+    throw new Error("Missing DEMO_EMPLOYEE_USERNAME or DEMO_EMPLOYEE_PASSWORD in environment");
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -56,8 +61,49 @@ const main = async () => {
 
   // Note: Sales depend on your app logic; keep seed minimal.
 
+  const existingEmployee = await prisma.employee.findFirst({
+    where: {
+      ownerId: user.id,
+      deletedAt: null,
+      username: { equals: demoEmployeeUsername, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+
+  if (!existingEmployee) {
+    await prisma.employee.create({
+      data: {
+        ownerId: user.id,
+        name: "Usuario Demo",
+        username: demoEmployeeUsername,
+        role: "admin",
+        email: `employee+${demoEmployeeUsername}@fulltech.local`,
+        passwordLegacy: demoEmployeePassword,
+        blocked: false,
+        lastLoginAt: null,
+        updatedBy: user.id,
+      },
+    });
+  } else {
+    await prisma.employee.update({
+      where: { id: existingEmployee.id },
+      data: {
+        name: "Usuario Demo",
+        role: "admin",
+        email: `employee+${demoEmployeeUsername}@fulltech.local`,
+        passwordLegacy: demoEmployeePassword,
+        passwordHash: null,
+        passwordSalt: null,
+        blocked: false,
+        updatedBy: user.id,
+      },
+    });
+  }
+
   // eslint-disable-next-line no-console
   console.log("Seeded admin user:", { email });
+  // eslint-disable-next-line no-console
+  console.log("Seeded demo employee:", { username: demoEmployeeUsername });
 };
 
 main()

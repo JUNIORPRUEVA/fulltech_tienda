@@ -46,6 +46,7 @@ Recomendado: PostgreSQL 15+ (se usa `TIMESTAMPTZ` y UUID con `pgcrypto`).
 
 - `DATABASE_URL`
 - `ADMIN_EMAIL` y `ADMIN_PASSWORD` (obligatorias para `npm run seed`)
+- `DEMO_EMPLOYEE_USERNAME` y `DEMO_EMPLOYEE_PASSWORD` (opcional, para crear usuario demo de login)
 - `UPLOAD_DIR` (opcional, default `uploads`)
 
 Archivos (fotos, etc.): se sirven en `GET /uploads/<archivo>`.
