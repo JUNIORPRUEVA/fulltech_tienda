@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CloudSettingsData {
@@ -42,20 +43,30 @@ class CloudSettings {
   // flutter run --dart-define=CLOUD_BASE_URL=https://.../
   static const String _envBaseUrl = String.fromEnvironment(
     'CLOUD_BASE_URL',
-    defaultValue: 'https://fulltech-tienda-fulltechapersonalapp.gcdndd.easypanel.host',
+    defaultValue: '',
   );
+
+  static String _defaultBaseUrl() {
+    // Android emulator: host machine loopback.
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000';
+    }
+    // Desktop, iOS simulator, web dev server, etc.
+    return 'http://localhost:3000';
+  }
 
   // Cuenta cloud fija (para compartir catálogo/clientes en toda la empresa).
   static const String _envFixedEmail = String.fromEnvironment(
     'CLOUD_FIXED_EMAIL',
-    defaultValue: 'fulltechsd@gmail.com',
+    defaultValue: '',
   );
   static const String _envFixedPassword = String.fromEnvironment(
     'CLOUD_FIXED_PASSWORD',
-    defaultValue: 'Ayleenyahaira1019',
+    defaultValue: '',
   );
 
-  static String get envBaseUrl => _normalizeBaseUrl(_envBaseUrl);
+  static String get envBaseUrl =>
+      _normalizeBaseUrl(_envBaseUrl.trim().isEmpty ? _defaultBaseUrl() : _envBaseUrl);
   static String get fixedCloudEmail => _envFixedEmail.trim();
   static String get fixedCloudPassword => _envFixedPassword.trim();
 

@@ -1,16 +1,36 @@
-# fulltech
+# FULLTECH (Flutter + Backend)
 
-A new Flutter project.
+Este repo incluye:
+- App Flutter (carpeta `lib/`)
+- Backend Node/Express + PostgreSQL (carpeta `backend/`)
 
-## Getting Started
+## Login virtual (no local)
 
-This project is a starting point for a Flutter application.
+El login de la app es **contra el backend** (`/auth/employee/login`) y luego sincroniza (`/sync/pull` / `/sync/push`).
 
-A few resources to get you started if this is your first Flutter project:
+### 1) Levantar el backend (Docker recomendado)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Desde `backend/`:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+docker compose up --build
+docker compose exec api npm run seed
+```
+
+### 2) Ejecutar la app Flutter apuntando al backend local
+
+La app usa por defecto:
+- Android emulador: `http://10.0.2.2:3000`
+- Desktop/Web/iOS simulator: `http://localhost:3000`
+
+Si necesitas apuntar a otro servidor:
+
+```bash
+flutter run --dart-define=CLOUD_BASE_URL=http://TU_IP:3000
+```
+
+## Credenciales demo
+
+Al ejecutar `npm run seed` se crea (o actualiza) un usuario empleado demo:
+- Usuario: `demo`
+- Contraseña: `Demo12345!`

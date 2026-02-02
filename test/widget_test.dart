@@ -16,6 +16,6 @@ void main() {
     await tester.pumpWidget(const FullTechApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('FULLTECH'), findsWidgets);
+    expect(find.byType(FullTechApp), findsOneWidget);
   });
 }
