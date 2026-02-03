@@ -12,7 +12,9 @@ const { prisma } = await import("./db/prisma.js");
 const app = createApp();
 const server = createServer(app);
 
-server.listen(env.PORT, "0.0.0.0", () => {
+// Do not force IPv4-only binding. On Windows, `localhost` may resolve to ::1 (IPv6).
+// Leaving the host unspecified lets Node bind to the default address (dual-stack when available).
+server.listen(env.PORT, () => {
   logger.info({ port: env.PORT }, "api.listening");
 });
 
