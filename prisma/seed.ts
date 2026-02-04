@@ -9,20 +9,32 @@ const main = async () => {
   const demoEmployeeUsername = (process.env.DEMO_EMPLOYEE_USERNAME ?? "demo").trim();
   const demoEmployeePassword = (process.env.DEMO_EMPLOYEE_PASSWORD ?? "Demo12345!").trim();
 
-  if (!email || !password) {
-    throw new Error("Missing ADMIN_EMAIL or ADMIN_PASSWORD in environment");
-  }
   if (!demoEmployeeUsername || !demoEmployeePassword) {
     throw new Error("Missing DEMO_EMPLOYEE_USERNAME or DEMO_EMPLOYEE_PASSWORD in environment");
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const user = email && password
+    ? await prisma.user.upsert({
+        where: { email: email.toLowerCase() },
+        update: { role: "ADMIN", deletedAt: null },
+        create: {
+          email: email.toLowerCase(),
+          passwordHash: await bcrypt.hash(password, 12),
+          role: "ADMIN",
+        },
+        select: { id: true, email: true },
+      })
+    : await prisma.user.findFirst({
+        where: { deletedAt: null },
+        orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+        select: { id: true, email: true },
+      });
 
-  const user = await prisma.user.upsert({
-    where: { email: email.toLowerCase() },
-    update: { role: "ADMIN" },
-    create: { email: email.toLowerCase(), passwordHash, role: "ADMIN" },
-  });
+  if (!user) {
+    throw new Error(
+      "No users exist in the database. Set ADMIN_EMAIL and ADMIN_PASSWORD and rerun seed to create the initial admin user.",
+    );
+  }
 
   await prisma.customer.createMany({
     data: [
@@ -61,14 +73,38 @@ const main = async () => {
 
   // Note: Sales depend on your app logic; keep seed minimal.
 
-  const existingEmployee = await prisma.employee.findFirst({
+  const desiredEmail = `employee+${demoEmployeeUsername}@fulltech.local`;
+
+  const candidates = await prisma.employee.findMany({
     where: {
       ownerId: user.id,
       deletedAt: null,
-      username: { equals: demoEmployeeUsername, mode: "insensitive" },
+      OR: [
+        { username: { equals: demoEmployeeUsername, mode: "insensitive" } },
+        { email: { equals: desiredEmail, mode: "insensitive" } },
+        { name: { equals: "Usuario Demo", mode: "insensitive" } },
+        { email: { endsWith: "@fulltech.local", mode: "insensitive" } },
+      ],
     },
-    select: { id: true },
+    take: 10,
+    select: { id: true, username: true, email: true, name: true },
   });
+
+  const exactMatch =
+    candidates.find((e) => e.username?.toLowerCase() === demoEmployeeUsername.toLowerCase()) ??
+    candidates.find((e) => (e.email ?? "").toLowerCase() === desiredEmail.toLowerCase());
+
+  const byName = candidates.filter(
+    (e) => (e.name ?? "").toLowerCase() === "usuario demo".toLowerCase(),
+  );
+  const byLocalEmail = candidates.filter(
+    (e) => (e.email ?? "").toLowerCase().endsWith("@fulltech.local"),
+  );
+
+  const existingEmployee =
+    exactMatch ??
+    (byName.length === 1 ? byName[0] : undefined) ??
+    (byLocalEmail.length === 1 ? byLocalEmail[0] : undefined);
 
   if (!existingEmployee) {
     await prisma.employee.create({
@@ -77,7 +113,7 @@ const main = async () => {
         name: "Usuario Demo",
         username: demoEmployeeUsername,
         role: "admin",
-        email: `employee+${demoEmployeeUsername}@fulltech.local`,
+        email: desiredEmail,
         passwordLegacy: demoEmployeePassword,
         blocked: false,
         lastLoginAt: null,
@@ -89,8 +125,9 @@ const main = async () => {
       where: { id: existingEmployee.id },
       data: {
         name: "Usuario Demo",
+        username: demoEmployeeUsername,
         role: "admin",
-        email: `employee+${demoEmployeeUsername}@fulltech.local`,
+        email: desiredEmail,
         passwordLegacy: demoEmployeePassword,
         passwordHash: null,
         passwordSalt: null,
@@ -101,7 +138,11 @@ const main = async () => {
   }
 
   // eslint-disable-next-line no-console
-  console.log("Seeded admin user:", { email });
+  if (email && password) {
+    console.log("Seeded/updated admin user:", { email: email.toLowerCase() });
+  } else {
+    console.log("Using existing owner user:", { email: user.email });
+  }
   // eslint-disable-next-line no-console
   console.log("Seeded demo employee:", { username: demoEmployeeUsername });
 };
