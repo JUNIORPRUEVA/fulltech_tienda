@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CloudSettingsData {
@@ -23,10 +22,26 @@ class CloudSettingsData {
   /// Se usa como `since` en `/sync/pull`.
   final String lastServerTime;
 
-  bool get hasSession => accessToken.trim().isNotEmpty && refreshToken.trim().isNotEmpty;
+  bool get hasSession =>
+      accessToken.trim().isNotEmpty && refreshToken.trim().isNotEmpty;
 }
 
 class CloudSettings {
+  static const String _defaultProductionBaseUrl =
+      'https://fulltech-tienda-fulltechapersonalapp.gcdndd.easypanel.host';
+
+  // Optional override at build/run time:
+  // flutter run --dart-define=CLOUD_BASE_URL=https://tu-dominio.com
+  static const String _envBaseUrlOverride = String.fromEnvironment(
+    'CLOUD_BASE_URL',
+    defaultValue: '',
+  );
+
+  static String get productionBaseUrl {
+    final v = _envBaseUrlOverride.trim();
+    return v.isEmpty ? _defaultProductionBaseUrl : v;
+  }
+
   static const _prefsEnabled = 'cloud_enabled';
   static const _prefsBaseUrl = 'cloud_base_url';
   static const _prefsEmail = 'cloud_email';
@@ -39,21 +54,8 @@ class CloudSettings {
   static const _prefsLastCloudMessage = 'cloud_last_message';
   static const _prefsLastCloudAtMs = 'cloud_last_at_ms';
 
-  // Puedes sobreescribir en build/run:
-  // flutter run --dart-define=CLOUD_BASE_URL=https://.../
-  static const String _envBaseUrl = String.fromEnvironment(
-    'CLOUD_BASE_URL',
-    defaultValue: '',
-  );
-
-  static String _defaultBaseUrl() {
-    // Android emulator: host machine loopback.
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000';
-    }
-    // Desktop, iOS simulator, web dev server, etc.
-    return 'http://localhost:3000';
-  }
+  // Backend URL is fixed to production.
+  static bool get isBaseUrlLocked => true;
 
   // Cuenta cloud fija (para compartir catálogo/clientes en toda la empresa).
   static const String _envFixedEmail = String.fromEnvironment(
@@ -65,8 +67,7 @@ class CloudSettings {
     defaultValue: '',
   );
 
-  static String get envBaseUrl =>
-      _normalizeBaseUrl(_envBaseUrl.trim().isEmpty ? _defaultBaseUrl() : _envBaseUrl);
+  static String get envBaseUrl => _normalizeBaseUrl(productionBaseUrl);
   static String get fixedCloudEmail => _envFixedEmail.trim();
   static String get fixedCloudPassword => _envFixedPassword.trim();
 
@@ -87,10 +88,10 @@ class CloudSettings {
     if (prefs.getBool(_prefsEnabled) != true) {
       await prefs.setBool(_prefsEnabled, true);
     }
-    // Base URL is not user-configurable; always use the build-time configured value.
+    // Base URL is always the production backend.
     final baseUrl = envBaseUrl;
-    final storedBaseUrl = _normalizeBaseUrl(prefs.getString(_prefsBaseUrl) ?? envBaseUrl);
-    if (storedBaseUrl != baseUrl) {
+    if (_normalizeBaseUrl((prefs.getString(_prefsBaseUrl) ?? '').trim()) !=
+        baseUrl) {
       await prefs.setString(_prefsBaseUrl, baseUrl);
     }
     final email = (prefs.getString(_prefsEmail) ?? '').trim();
@@ -110,6 +111,13 @@ class CloudSettings {
     );
   }
 
+  static Future<void> saveBaseUrl(String baseUrl) async {
+    // No-op for callers: backend URL is fixed.
+    final normalized = envBaseUrl;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsBaseUrl, normalized);
+  }
+
   static Future<void> save({
     required bool enabled,
     required String baseUrl,
@@ -118,7 +126,7 @@ class CloudSettings {
     final prefs = await SharedPreferences.getInstance();
     // Ignore caller value: always ON.
     await prefs.setBool(_prefsEnabled, true);
-    // Ignore caller value: base URL is fixed by build-time config.
+    // Always persist the fixed base URL.
     await prefs.setString(_prefsBaseUrl, envBaseUrl);
     await prefs.setString(_prefsEmail, email.trim());
   }
@@ -155,7 +163,8 @@ class CloudSettings {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefsLastCloudOk, ok);
     await prefs.setString(_prefsLastCloudMessage, message.trim());
-    await prefs.setInt(_prefsLastCloudAtMs, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+        _prefsLastCloudAtMs, DateTime.now().millisecondsSinceEpoch);
   }
 
   static Future<String> loadLastCloudMessage() async {

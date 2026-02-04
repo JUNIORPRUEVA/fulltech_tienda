@@ -19,15 +19,17 @@ docker compose exec api npm run seed
 
 ### 2) Ejecutar la app Flutter apuntando al backend local
 
-La app usa por defecto:
-- Android emulador: `http://10.0.2.2:3000`
-- Desktop/Web/iOS simulator: `http://localhost:3000`
+La app apunta por defecto al backend de producción configurado en `CloudSettings.productionBaseUrl`.
 
 Si necesitas apuntar a otro servidor:
 
 ```bash
 flutter run --dart-define=CLOUD_BASE_URL=http://TU_IP:3000
 ```
+
+Ejemplos comunes:
+- Android emulador: `http://10.0.2.2:3000`
+- Desktop/iOS simulator: `http://localhost:3000`
 
 ## Credenciales demo
 

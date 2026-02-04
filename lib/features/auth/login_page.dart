@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/auth_service.dart';
+import '../../data/cloud_settings.dart';
 import '../../ui/shell/fulltech_shell.dart';
 
 class LoginPage extends StatefulWidget {
@@ -54,12 +55,13 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = false);
 
     if (!result.isOk) {
+      final lastMsg = await CloudSettings.loadLastCloudMessage();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             result is LoginBlocked
                 ? 'Usuario bloqueado. Contacta al administrador.'
-                : 'Credenciales invalidas.',
+                : (lastMsg.isNotEmpty ? lastMsg : 'No se pudo iniciar sesión.'),
           ),
         ),
       );
@@ -140,14 +142,15 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _usuario,
-                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(
                           labelText: 'Usuario',
-                          hintText: 'ej: junior',
                         ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Requerido'
-                            : null,
+                        validator: (v) {
+                          final val = (v ?? '').trim();
+                          if (val.isEmpty) return 'Requerido';
+                          return null;
+                        },
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
