@@ -78,6 +78,15 @@ export const createApp = () => {
   app.use("/virtual", virtualRouter);
   app.use("/rrhh", rrhhRouter);
 
+  // Backward compatible API prefix.
+  app.use("/api/auth", authRouter);
+  app.use("/api/sync", syncRouter);
+  app.use("/api/customers", customersRouter);
+  app.use("/api/products", productsRouter);
+  app.use("/api/sales", salesRouter);
+  app.use("/api/files", filesRouter);
+  app.use("/api/rrhh", rrhhRouter);
+
   app.use((_req, res) => {
     res.status(404).json({
       error: { code: "NOT_FOUND", message: "Route not found" },

@@ -62,7 +62,12 @@ export const authService = {
       },
     });
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      ownerId: user.id,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
   },
 
   async loginEmployee(username: string, password: string, deviceId?: string) {
