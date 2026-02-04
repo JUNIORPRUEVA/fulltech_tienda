@@ -30,9 +30,9 @@ describe("/sync/push", () => {
       .set("Authorization", `Bearer ${accessToken}`)
       .send([
         {
-          opId: "00000000-0000-0000-0000-000000000101",
+          opId: "00000000-0000-4000-8000-000000000101",
           entity: "customers",
-          entityId: "00000000-0000-0000-0000-000000000201",
+          entityId: "00000000-0000-4000-8000-000000000201",
           type: "UPSERT",
           payload: { name: "Cliente Sync" },
           clientUpdatedAt: "2026-01-26T00:00:00.000Z",
@@ -44,7 +44,7 @@ describe("/sync/push", () => {
     expect(pushRes.body.results[0].status).toBe("OK");
 
     const customer = await prisma.customer.findUnique({
-      where: { id: "00000000-0000-0000-0000-000000000201" },
+      where: { id: "00000000-0000-4000-8000-000000000201" },
     });
 
     expect(customer?.name).toBe("Cliente Sync");
