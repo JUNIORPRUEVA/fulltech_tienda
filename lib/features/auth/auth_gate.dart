@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../data/auth_service.dart';
 import '../../data/cloud_api.dart';
@@ -25,6 +26,9 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _boot() async {
     final settings = await CloudSettings.load();
+    if (kDebugMode) {
+      debugPrint('[AuthGate] boot baseUrl=${settings.baseUrl}');
+    }
     final api = CloudApi();
     if (!_isFlutterTest) {
       final ok =

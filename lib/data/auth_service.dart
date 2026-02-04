@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 import '../utils/cloud_friendly_error.dart';
 import 'app_database.dart';
@@ -130,6 +131,9 @@ class AuthService {
     final api = CloudApi();
 
     try {
+      if (kDebugMode) {
+        debugPrint('[AuthService] login start baseUrl=$baseUrl user=$identity');
+      }
       final tokens = await api.loginEmployee(
         baseUrl: baseUrl,
         username: identity,
@@ -182,16 +186,22 @@ class AuthService {
       try {
         await SyncService().syncNow();
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AuthService] sync after login failed: $e');
+        }
         await CloudSettings.saveLastCloudStatus(
           ok: false,
-          message: cloudFriendlyReason(e),
+          message:
+              'SesiÃ³n iniciada, pero no se pudo sincronizar: ${cloudFriendlyReason(e)}',
         );
-        return const LoginResult.invalid();
       }
 
       await loadSession();
       return const LoginResult.ok();
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthService] login failed: $e');
+      }
       final reason = cloudFriendlyReason(e);
       final lowered = reason.toLowerCase();
       await CloudSettings.saveLastCloudStatus(

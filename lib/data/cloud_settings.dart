@@ -1,4 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+
+import 'secure_store.dart';
 
 class CloudSettingsData {
   CloudSettingsData({
@@ -37,6 +40,19 @@ class CloudSettings {
     defaultValue: '',
   );
 
+  // Debug-only override:
+  // flutter run --dart-define=CLOUD_DEBUG_BASE_URL=http://10.0.2.2:3000
+  static const String _envDebugBaseUrlOverride = String.fromEnvironment(
+    'CLOUD_DEBUG_BASE_URL',
+    defaultValue: '',
+  );
+
+  // Safety valve for debugging on real devices (NOT recommended):
+  static const bool _allowMobileLocalhost = bool.fromEnvironment(
+    'CLOUD_ALLOW_MOBILE_LOCALHOST',
+    defaultValue: false,
+  );
+
   static String get productionBaseUrl {
     final v = _envBaseUrlOverride.trim();
     return v.isEmpty ? _defaultProductionBaseUrl : v;
@@ -45,6 +61,7 @@ class CloudSettings {
   static const _prefsEnabled = 'cloud_enabled';
   static const _prefsBaseUrl = 'cloud_base_url';
   static const _prefsEmail = 'cloud_email';
+  // Legacy (migrated to secure storage)
   static const _prefsAccess = 'cloud_access_token';
   static const _prefsRefresh = 'cloud_refresh_token';
   static const _prefsDeviceId = 'cloud_device_id';
@@ -67,7 +84,7 @@ class CloudSettings {
     defaultValue: '',
   );
 
-  static String get envBaseUrl => _normalizeBaseUrl(productionBaseUrl);
+  static String get envBaseUrl => _pickBaseUrl();
   static String get fixedCloudEmail => _envFixedEmail.trim();
   static String get fixedCloudPassword => _envFixedPassword.trim();
 
@@ -80,6 +97,32 @@ class CloudSettings {
     return v;
   }
 
+  static String _pickBaseUrl() {
+    final raw = (kReleaseMode ? _envBaseUrlOverride : _envDebugBaseUrlOverride)
+        .trim();
+    final candidate = raw.isEmpty ? productionBaseUrl : raw;
+    final normalized = _normalizeBaseUrl(candidate);
+
+    final host = Uri.tryParse(normalized)?.host.toLowerCase() ?? '';
+    final isLocalhost = host == 'localhost' || host == '127.0.0.1';
+
+    if (kReleaseMode && isLocalhost) {
+      return _normalizeBaseUrl(productionBaseUrl);
+    }
+
+    final isMobile = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    if (!kReleaseMode && isMobile && isLocalhost && !_allowMobileLocalhost) {
+      return _normalizeBaseUrl(productionBaseUrl);
+    }
+
+    return normalized;
+  }
+
+  static const _secureAccessKey = 'fulltech.cloud.accessToken';
+  static const _secureRefreshKey = 'fulltech.cloud.refreshToken';
+
   static Future<CloudSettingsData> load() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -89,14 +132,29 @@ class CloudSettings {
       await prefs.setBool(_prefsEnabled, true);
     }
     // Base URL is always the production backend.
-    final baseUrl = envBaseUrl;
+    final baseUrl = _pickBaseUrl();
     if (_normalizeBaseUrl((prefs.getString(_prefsBaseUrl) ?? '').trim()) !=
         baseUrl) {
       await prefs.setString(_prefsBaseUrl, baseUrl);
     }
     final email = (prefs.getString(_prefsEmail) ?? '').trim();
-    final access = (prefs.getString(_prefsAccess) ?? '').trim();
-    final refresh = (prefs.getString(_prefsRefresh) ?? '').trim();
+
+    // Tokens are stored in secure storage; keep prefs as a migration fallback.
+    var access = (await SecureStore.readString(_secureAccessKey)).trim();
+    var refresh = (await SecureStore.readString(_secureRefreshKey)).trim();
+    if (access.isEmpty || refresh.isEmpty) {
+      final legacyAccess = (prefs.getString(_prefsAccess) ?? '').trim();
+      final legacyRefresh = (prefs.getString(_prefsRefresh) ?? '').trim();
+      if (access.isEmpty) access = legacyAccess;
+      if (refresh.isEmpty) refresh = legacyRefresh;
+      if (access.isNotEmpty && refresh.isNotEmpty) {
+        await SecureStore.writeString(_secureAccessKey, access);
+        await SecureStore.writeString(_secureRefreshKey, refresh);
+        await prefs.remove(_prefsAccess);
+        await prefs.remove(_prefsRefresh);
+      }
+    }
+
     final deviceId = (prefs.getString(_prefsDeviceId) ?? '').trim();
     final lastServerTime = (prefs.getString(_prefsLastServerTime) ?? '').trim();
 
@@ -135,9 +193,12 @@ class CloudSettings {
     required String accessToken,
     required String refreshToken,
   }) async {
+    await SecureStore.writeString(_secureAccessKey, accessToken);
+    await SecureStore.writeString(_secureRefreshKey, refreshToken);
+    // Remove legacy storage to avoid keeping tokens in plain prefs.
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsAccess, accessToken.trim());
-    await prefs.setString(_prefsRefresh, refreshToken.trim());
+    await prefs.remove(_prefsAccess);
+    await prefs.remove(_prefsRefresh);
   }
 
   static Future<void> saveDeviceId(String deviceId) async {
@@ -152,6 +213,8 @@ class CloudSettings {
 
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
+    await SecureStore.delete(_secureAccessKey);
+    await SecureStore.delete(_secureRefreshKey);
     await prefs.remove(_prefsAccess);
     await prefs.remove(_prefsRefresh);
   }

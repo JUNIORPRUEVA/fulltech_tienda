@@ -1020,7 +1020,7 @@ class _ReporteData {
     List<String>? adminSinEntradaSample;
     List<String>? adminSalidaPendienteSample;
 
-    if (AuthService.isAdminRole(currentUserRol)) {
+    if (true) {
       try {
         final rows = await _safeRawQuery(
           '''

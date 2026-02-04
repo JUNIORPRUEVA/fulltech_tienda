@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
@@ -39,6 +40,11 @@ class SyncService {
   static const _uuid = Uuid();
 
   static bool _inProgress = false;
+
+  void _log(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[SyncService] $message');
+  }
 
   Future<SyncSummary> syncNow() async {
     if (_inProgress) {
@@ -426,6 +432,7 @@ class SyncService {
     required Object body,
     required Future<void> Function(_Tokens tokens) onTokens,
   }) async {
+    final sw = Stopwatch()..start();
     http.Response resp = await _client
         .post(
           url,
@@ -435,8 +442,9 @@ class SyncService {
           },
           body: jsonEncode(body),
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 45));
 
+    _log('POST $url -> ${resp.statusCode} (${sw.elapsedMilliseconds}ms)');
     if (resp.statusCode != 401) {
       _throwIfBad(resp);
       return resp;
@@ -450,6 +458,9 @@ class SyncService {
     );
     await onTokens(tokens);
 
+    sw
+      ..reset()
+      ..start();
     resp = await _client
         .post(
           url,
@@ -459,8 +470,9 @@ class SyncService {
           },
           body: jsonEncode(body),
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 45));
 
+    _log('POST(retry) $url -> ${resp.statusCode} (${sw.elapsedMilliseconds}ms)');
     _throwIfBad(resp);
     return resp;
   }
@@ -472,13 +484,15 @@ class SyncService {
     required String deviceId,
     required Future<void> Function(_Tokens tokens) onTokens,
   }) async {
+    final sw = Stopwatch()..start();
     http.Response resp = await _client
         .get(
           url,
           headers: {'Authorization': 'Bearer $accessToken'},
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 45));
 
+    _log('GET $url -> ${resp.statusCode} (${sw.elapsedMilliseconds}ms)');
     if (resp.statusCode != 401) {
       _throwIfBad(resp);
       return resp;
@@ -491,13 +505,17 @@ class SyncService {
     );
     await onTokens(tokens);
 
+    sw
+      ..reset()
+      ..start();
     resp = await _client
         .get(
           url,
           headers: {'Authorization': 'Bearer ${tokens.accessToken}'},
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 45));
 
+    _log('GET(retry) $url -> ${resp.statusCode} (${sw.elapsedMilliseconds}ms)');
     _throwIfBad(resp);
     return resp;
   }

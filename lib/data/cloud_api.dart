@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'cloud_settings.dart';
@@ -9,19 +10,35 @@ class CloudApi {
 
   final http.Client _client;
 
+  void _log(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[CloudApi] $message');
+  }
+
+  String _redactBody(String body) {
+    var v = body;
+    v = v.replaceAll(
+      RegExp(r'"(accessToken|refreshToken)"\s*:\s*"[^"]+"'),
+      r'"$1":"<redacted>"',
+    );
+    return v;
+  }
+
   Future<bool> ping({required String baseUrl}) async {
     final base = _normalizeBaseUrl(baseUrl);
     final healthUrl = Uri.parse('$base/health');
     try {
+      _log('GET $healthUrl');
       final resp =
-          await _client.get(healthUrl).timeout(const Duration(seconds: 5));
+          await _client.get(healthUrl).timeout(const Duration(seconds: 8));
       if (resp.statusCode >= 200 && resp.statusCode < 300) return true;
     } catch (_) {}
 
     final rootUrl = Uri.parse(base);
     try {
+      _log('GET $rootUrl');
       final resp =
-          await _client.get(rootUrl).timeout(const Duration(seconds: 5));
+          await _client.get(rootUrl).timeout(const Duration(seconds: 8));
       return resp.statusCode >= 200 && resp.statusCode < 300;
     } catch (_) {
       return false;
@@ -42,15 +59,17 @@ class CloudApi {
     final device = (deviceId ?? '').trim();
     if (device.isNotEmpty) payload['deviceId'] = device;
 
+    _log('POST $url (email=${email.trim()})');
     final resp = await _client
         .post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(payload),
         )
-        .timeout(const Duration(seconds: 12));
+        .timeout(const Duration(seconds: 20));
 
     final body = resp.body.trim();
+    _log('RESP ${resp.statusCode} ${_redactBody(body)}');
     final decoded = body.isEmpty ? null : jsonDecode(body);
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
@@ -82,15 +101,17 @@ class CloudApi {
     final device = (deviceId ?? '').trim();
     if (device.isNotEmpty) payload['deviceId'] = device;
 
+    _log('POST $url (username=${username.trim()})');
     final resp = await _client
         .post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(payload),
         )
-        .timeout(const Duration(seconds: 12));
+        .timeout(const Duration(seconds: 20));
 
     final body = resp.body.trim();
+    _log('RESP ${resp.statusCode} ${_redactBody(body)}');
     final decoded = body.isEmpty ? null : jsonDecode(body);
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
@@ -114,6 +135,7 @@ class CloudApi {
     required String password,
   }) async {
     final url = Uri.parse('${_normalizeBaseUrl(baseUrl)}/auth/register');
+    _log('POST $url (email=${email.trim()})');
     final resp = await _client
         .post(
           url,
@@ -123,11 +145,12 @@ class CloudApi {
             'password': password,
           }),
         )
-        .timeout(const Duration(seconds: 12));
+        .timeout(const Duration(seconds: 20));
 
     if (resp.statusCode >= 200 && resp.statusCode < 300) return;
 
     final body = resp.body.trim();
+    _log('RESP ${resp.statusCode} ${_redactBody(body)}');
     final decoded = body.isEmpty ? null : jsonDecode(body);
     String? msg;
     if (decoded is Map) {
@@ -149,15 +172,17 @@ class CloudApi {
     final device = (deviceId ?? '').trim();
     if (device.isNotEmpty) payload['deviceId'] = device;
 
+    _log('POST $url (refreshToken=<redacted>)');
     final resp = await _client
         .post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(payload),
         )
-        .timeout(const Duration(seconds: 12));
+        .timeout(const Duration(seconds: 20));
 
     final body = resp.body.trim();
+    _log('RESP ${resp.statusCode} ${_redactBody(body)}');
     final decoded = body.isEmpty ? null : jsonDecode(body);
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
